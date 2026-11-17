@@ -41,3 +41,5 @@ Nicer for interactive work and for secrets, since nothing has to be typed throug
 ```sh
 make test      # = ./tests/run.sh : shell/Python syntax, DNS server unit tests, alarm logic tests
 ```
+
+CI (`.github/workflows/test.yml`) runs the same thing on every push and pull request.

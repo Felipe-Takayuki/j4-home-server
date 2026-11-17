@@ -25,7 +25,7 @@ they were worked around** ([docs/11](docs/11-android10-pitfalls.md)).
 | **Telegram bot** | `/status`, `/foto` (camera), `/tocar` (play a sound), `/despertador`, `/dns`, `/parar` — answers only to you | [08](docs/08-telegram-bot.md) |
 | **Alarm clock** | Set alarms from Telegram; the phone rings until you send `/parar` | [09](docs/09-alarm-clock.md) |
 | **DNS ad blocker** | ~76k-domain blocklist served as DNS-over-TLS on your tailnet for Android's *Private DNS*, with a watchdog | [10](docs/10-dns-adblocker.md) |
-| **Tooling** | Run scripts inside Termux from the PC over `adb` (no SSH needed), offline tests | [13](docs/13-deploying-from-a-pc.md) |
+| **Tooling** | Run scripts inside Termux from the PC over `adb` (no SSH needed), offline tests, CI | [13](docs/13-deploying-from-a-pc.md) |
 
 ```
                        your devices (phone, tablet, PC) — all on your Tailscale tailnet
