@@ -1,0 +1,16 @@
+# dufs configuration (copy to ~/.dufs/config.yaml). install/cloud.sh generates this with a random password.
+bind: 127.0.0.1            # only localhost: `tailscale serve` is what exposes it (tailnet only, HTTPS)
+port: 8080
+serve-path: /data/data/com.termux/files/home/cloud
+auth:
+  - 'cloud:CHANGE-ME@/:rw' # user:password@path:permissions
+allow-upload: true
+allow-delete: true
+allow-search: true
+allow-archive: true
+allow-symlink: false
+render-index: false
+log-format: '$remote_addr "$request" $status'
+assets: /data/data/com.termux/files/home/.dufs/assets   # custom UI (ui/index.html)
+hidden:
+  - '.nuvem-status.json'
