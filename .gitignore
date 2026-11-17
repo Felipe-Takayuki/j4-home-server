@@ -1,0 +1,13 @@
+# runtime files and anything that could hold secrets
+debloat/debloat.log
+*.log
+*.bak
+*.new
+config
+.env
+*.key
+*.pem
+__pycache__/
+.impeccable/
+node_modules/
+.DS_Store
