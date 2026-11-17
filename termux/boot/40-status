@@ -1,0 +1,6 @@
+#!/data/data/com.termux/files/usr/bin/sh
+# Termux:Boot: starts the loop that publishes disk usage for the cloud UI. Copy to ~/.termux/boot/40-status
+B=/data/data/com.termux/files/usr/bin
+H=/data/data/com.termux/files/home
+$B/pgrep -f status-loop.sh >/dev/null && exit 0
+$B/nohup $B/sh $H/.dufs/status-loop.sh >/dev/null 2>&1 &

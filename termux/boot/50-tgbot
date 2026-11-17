@@ -1,0 +1,9 @@
+#!/data/data/com.termux/files/usr/bin/sh
+# Termux:Boot: sobe o bot do Telegram. Copiar para ~/.termux/boot/50-tgbot
+B=/data/data/com.termux/files/usr/bin
+D=/data/data/com.termux/files/home/.tgbot
+$B/termux-wake-lock
+[ -f "$D/config" ] || exit 0
+$B/date +%s > "$D/boot_ts"   # marca o boot (o bot avisa "Servidor ligado" uma vez por boot)
+$B/pgrep -f '.tgbot/run.sh' >/dev/null && exit 0
+$B/nohup $B/sh "$D/run.sh" >/dev/null 2>&1 &

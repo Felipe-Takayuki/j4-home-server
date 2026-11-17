@@ -1,0 +1,4 @@
+#!/data/data/com.termux/files/usr/bin/sh
+# Termux:Boot: starts the SSH server (key-only, port 8022). Copy to ~/.termux/boot/10-sshd
+termux-wake-lock
+sshd

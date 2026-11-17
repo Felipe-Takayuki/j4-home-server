@@ -1,0 +1,4 @@
+#!/data/data/com.termux/files/usr/bin/sh
+# Termux:Boot: starts tailscaled (userspace networking). Copy to ~/.termux/boot/20-tailscale
+termux-wake-lock
+ts-start

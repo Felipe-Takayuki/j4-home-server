@@ -1,0 +1,6 @@
+#!/data/data/com.termux/files/usr/bin/sh
+# Wrapper for the tailscale CLI. The EMPTY PATH is deliberate: on Android 10 the Go runtime
+# is killed with SIGSYS (faccessat2) as soon as it looks up executables in PATH.
+# See docs/11-android10-pitfalls.md. Copy to $PREFIX/bin/ts
+export PATH=/data/data/com.termux/files/home/.tailscale/emptybin
+exec /data/data/com.termux/files/usr/bin/tailscale --socket=/data/data/com.termux/files/home/.tailscale/tailscaled.sock "$@"

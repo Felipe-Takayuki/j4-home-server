@@ -1,0 +1,8 @@
+#!/data/data/com.termux/files/usr/bin/sh
+# Termux:Boot: sobe o bloqueador de anúncios por DNS. Copiar para ~/.termux/boot/60-dnsblock
+B=/data/data/com.termux/files/usr/bin
+D=/data/data/com.termux/files/home/.dnsblock
+$B/termux-wake-lock
+[ -f "$D/dnsblock.py" ] || exit 0
+$B/pgrep -f '[.]dnsblock/run[.]sh' >/dev/null && exit 0
+$B/nohup $B/sh "$D/run.sh" >/dev/null 2>&1 &

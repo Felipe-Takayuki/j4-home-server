@@ -1,0 +1,7 @@
+#!/data/data/com.termux/files/usr/bin/sh
+# Termux:Boot: starts dufs (the file server behind the "cloud"). Copy to ~/.termux/boot/30-cloud
+B=/data/data/com.termux/files/usr/bin
+H=/data/data/com.termux/files/home
+$B/termux-wake-lock
+$B/pgrep dufs >/dev/null && exit 0
+$B/nohup $B/dufs -c $H/.dufs/config.yaml >$H/.dufs/dufs.log 2>&1 &

@@ -1,0 +1,8 @@
+#!/data/data/com.termux/files/usr/bin/sh
+# Starts tailscaled in userspace-networking mode (no root, no TUN device).
+# Copy to $PREFIX/bin/ts-start. The empty PATH avoids the Android 10 SIGSYS crash (see docs).
+B=/data/data/com.termux/files/usr/bin
+H=/data/data/com.termux/files/home
+$B/pgrep -f /usr/bin/tailscaled >/dev/null && exit 0
+$B/mkdir -p $H/.tailscale/emptybin
+$B/nohup $B/sh -c "export SSL_CERT_FILE=/data/data/com.termux/files/usr/etc/tls/cert.pem SSL_CERT_DIR=/data/data/com.termux/files/usr/etc/tls/certs PATH=$H/.tailscale/emptybin; exec $B/tailscaled --tun=userspace-networking --statedir=$H/.tailscale --socket=$H/.tailscale/tailscaled.sock" >$H/.tailscale/tailscaled.log 2>&1 &
