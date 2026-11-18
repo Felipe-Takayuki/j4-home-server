@@ -43,6 +43,20 @@ adb shell locksettings set-disabled true                 # the AOSP command; it 
 Check: `adb shell input keyevent KEYCODE_SLEEP`, wait 20 s, `KEYCODE_WAKEUP` → the launcher appears. Undo: `settings put secure lockscreen.disabled 0` and `locksettings set-disabled false`.
 Anyone who holds the phone then has full access (Termux included), the same as with a swipe-only lock. Keep the phone somewhere private. *(Not checked: whether it survives a reboot.)*
 
+## A cleaner quick-settings panel
+
+The look of the notification shade is Samsung's, but **which tiles it shows** is a setting. The author keeps only Wi-Fi, sound mode and the flashlight
+(the brightness slider is always there, and the battery % is already in the status bar; there is no separate battery tile on One UI 2):
+
+```sh
+adb shell settings get secure sysui_qs_tiles                       # save this value first
+adb shell settings put secure sysui_qs_tiles "Wifi,SoundMode,Flashlight"
+```
+
+Undo with the value you saved, or delete the setting: `adb shell settings delete secure sysui_qs_tiles` (Android rebuilds the default list).
+Other tile names seen on the J4: `Bluetooth`, `RotationLock`, `AirplaneMode`, `MobileData`, `Hotspot`, `Location`, `Dnd`, `BlueLightFilter`, `NavigationBar`.
+Saves almost no RAM; it only removes clutter and buttons whose app was debloated away (Bluetooth, for one). *(Not checked: whether it survives a reboot.)*
+
 ## Restarting things
 
 ```sh
