@@ -1,7 +1,12 @@
 # 15 — Text reminders (`/lembrar`)
 
-A reminder is a **Telegram message at a time you choose**: no sound, no screen. (For something that must wake you up, use the [alarm clock](09-alarm-clock.md).)
+A reminder is a **Telegram message at a time you choose, plus a short chime on the phone**: the *Ding_Dong* notification sound, repeated every 2.5 s for
+**10 seconds**, then it stops by itself. (For something that must wake you up and keep ringing, use the [alarm clock](09-alarm-clock.md).)
 It lives inside the bot: one more 15-second background loop, no new process to install, ~0 MB of extra RAM.
+
+- The chime never interrupts a ringing alarm (the message still arrives), and `/parar` cuts it short.
+- Change the sound or length with `REMINDER_SOUND` / `REMINDER_BEEP_SECS` at the top of the reminders section in `tgbot/bot.sh` (`/tocar lista` shows the names).
+- There is no per-reminder switch: it always chimes. If the sound is not found, only the message is sent.
 
 ## Commands
 

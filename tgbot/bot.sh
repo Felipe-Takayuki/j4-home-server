@@ -205,17 +205,37 @@ cmd_despertador() {
   send "⏰ Despertador $id criado: $t · $(mode_label "$mode") · som $snd"$'\n'"Próxima vez: $([ -n "$last" ] && echo "a partir de amanhã" || echo "hoje")"
 }
 
-# ---------- Lembretes (mensagem de texto, sem som) ----------
+# ---------- Lembretes (mensagem de texto + toque curto) ----------
 # Arquivo $D/reminders, uma linha por lembrete:
 #   uma vez:    id|epoch|once||texto
 #   recorrente: id|HH:MM|daily/weekdays/weekend|ultimo_dia_disparado|texto
 # O texto fica por último porque pode ter "|".
 REMINDERS="$D/reminders"
 DIAS=(dom seg ter qua qui sex sáb)
+REMINDER_SOUND="Ding_Dong"   # sininho curto; diferente do toque longo do despertador
+REMINDER_BEEP_SECS=10        # toca por 10 s e para sozinho
 TIME_RE='^([01]?[0-9]|2[0-3])(:([0-5][0-9])|h([0-5][0-9])?)$'
 
 rlock()   { local i=0; until mkdir "$D/reminders.lock" 2>/dev/null; do sleep 0.2; i=$((i+1)); [ $i -gt 75 ] && rmdir "$D/reminders.lock" 2>/dev/null; done; }
 runlock() { rmdir "$D/reminders.lock" 2>/dev/null; }
+
+beep_reminder() {   # toca REMINDER_SOUND repetido por REMINDER_BEEP_SECS e para; /parar corta
+  local f; f=$(find_sound "$REMINDER_SOUND") || return 0
+  [ -f "$D/ring.pid" ] && return 0   # um alarme (ou outro lembrete) já está tocando: não atrapalha
+  : > "$D/ring.pid"
+  (
+    n=$(( (REMINDER_BEEP_SECS * 2 + 4) / 5 )); i=0   # um toque a cada 2,5 s
+    termux-volume music 13 >/dev/null 2>&1
+    while [ $i -lt $n ] && [ -f "$D/ring.pid" ]; do
+      termux-media-player stop >/dev/null 2>&1
+      termux-media-player play "$f" >/dev/null 2>&1
+      sleep 2.5; i=$((i+1))
+    done
+    termux-media-player stop >/dev/null 2>&1
+    rm -f "$D/ring.pid"
+  ) &
+  echo $! > "$D/ring.pid"
+}
 
 fmt_when() { echo "${DIAS[$(date -d "@$1" +%w)]} $(date -d "@$1" '+%d/%m %H:%M')"; }
 
@@ -272,10 +292,10 @@ reminder_loop() {   # roda em segundo plano; confere a cada 15 s. Lembrete atras
         if [[ "$when" =~ ^[0-9]+$ ]] && [ "$when" -le "$now_s" ]; then
           msg="🔔 Lembrete: $text"
           [ $((now_s - when)) -gt 300 ] && msg="$msg"$'\n'"(era para $(fmt_when "$when"); o servidor estava fora do ar)"
-          if send_ok "$msg"; then log "lembrete $id enviado"; continue; fi   # se o envio falhar, fica para a próxima rodada
+          if send_ok "$msg"; then log "lembrete $id enviado"; beep_reminder; continue; fi   # se o envio falhar, fica para a próxima rodada
         fi
       elif [[ ! "$now" < "$when" ]] && [ "$last" != "$today" ] && mode_ok "$mode" "$dow"; then
-        if send_ok "🔔 Lembrete: $text"; then last=$today; log "lembrete $id enviado"; fi
+        if send_ok "🔔 Lembrete: $text"; then last=$today; log "lembrete $id enviado"; beep_reminder; fi
       fi
       printf '%s|%s|%s|%s|%s\n' "$id" "$when" "$mode" "$last" "$text" >> "$out"
     done < "$REMINDERS"
@@ -413,7 +433,7 @@ dns_watch() {   # avisa quando o bloqueador cai e quando volta; tenta reiniciar 
 }
 
 cmd_ajuda() {
-  send $'🤖 Servidor J4\n/status: bateria, RAM, disco, rede e serviços\n/foto: foto da câmera traseira (/foto frente para a frontal)\n/tocar: faz o celular tocar (/tocar lista, /tocar nome)\n/despertador: /despertador 07:30 [diario|semana|fds] [som], /despertador lista, /despertador apagar N\n/lembrar: mensagem no horário, sem som. Ex.: /lembrar amanhã 9h pagar a luz · /lembrar em 30min · /lembrar 25/12 · /lembrar diario 8h remédio · /lembrar lista · /lembrar apagar N\n/dns: bloqueador de anúncios (consultas, bloqueios, mais bloqueados)\n/parar: silencia o som e o despertador\n/ajuda: esta mensagem'
+  send $'🤖 Servidor J4\n/status: bateria, RAM, disco, rede e serviços\n/foto: foto da câmera traseira (/foto frente para a frontal)\n/tocar: faz o celular tocar (/tocar lista, /tocar nome)\n/despertador: /despertador 07:30 [diario|semana|fds] [som], /despertador lista, /despertador apagar N\n/lembrar: mensagem + toque de 10 s no horário. Ex.: /lembrar amanhã 9h pagar a luz · /lembrar em 30min · /lembrar 25/12 · /lembrar diario 8h remédio · /lembrar lista · /lembrar apagar N\n/dns: bloqueador de anúncios (consultas, bloqueios, mais bloqueados)\n/parar: silencia o som e o despertador\n/ajuda: esta mensagem'
 }
 
 handle() {

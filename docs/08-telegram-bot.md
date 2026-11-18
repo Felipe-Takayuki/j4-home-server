@@ -13,7 +13,7 @@ Messages are in Brazilian Portuguese.
 | `/tocar [nome]` / `/tocar lista` | plays a built-in Android ringtone/notification sound (default `Basic_Bell`); `lista` shows the names |
 | `/despertador …` | alarm clock, see [09](09-alarm-clock.md) (`/alarme` is an alias) |
 | `/dns` | ad-blocker status and today's numbers, see [10](10-dns-adblocker.md) |
-| `/lembrar …` | text reminder at a given time, no sound, see [15](15-reminders.md) (`/lembretes` is an alias) |
+| `/lembrar …` | text reminder at a given time (plus a 10 s chime), see [15](15-reminders.md) (`/lembretes` is an alias) |
 | `/parar` | stops any sound, including a ringing alarm |
 | `/ajuda` | lists the commands |
 

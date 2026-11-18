@@ -3,6 +3,10 @@
 set -u
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 T=$(mktemp -d); trap 'rm -rf "$T"' EXIT
+mkdir -p "$T/bin" "$T/snd"; touch "$T/snd/Ding_Dong.ogg" "$T/snd/Morning_Glory.ogg"
+printf '#!/bin/sh\n' > "$T/bin/termux-volume"
+printf '#!/bin/sh\necho "$@" >> %s/player.log\n' "$T" > "$T/bin/termux-media-player"
+chmod +x "$T"/bin/*; PATH="$T/bin:$PATH"; SOUND_DIRS="$T/snd"
 fails=0
 ok()   { echo "ok   - $1"; }
 bad()  { echo "FAIL - $1"; fails=$((fails+1)); }
@@ -12,6 +16,7 @@ D=$T; SENT="$T/sent.log"; : > "$SENT"; SEND_FAILS=0
 log() { :; }
 send() { printf '%s\n---\n' "$1" >> "$SENT"; }
 send_ok() { [ "$SEND_FAILS" = 1 ] && return 1; send "$1"; }
+eval "$(sed -n '/^find_sound()/,/^}/p' "$ROOT/tgbot/bot.sh")"
 eval "$(sed -n '/^# ---------- Despertador/,/^# ---------- Bloqueador de DNS/p' "$ROOT/tgbot/bot.sh" | sed '$d')"
 
 now_s=$(date +%s)
@@ -111,4 +116,17 @@ check "a late reminder says it was late" 'grep -q "era para" "$SENT" && grep -q 
 : > "$SENT"; printf '5|%s|once||sem rede\n' "$((now_s - 5))" > "$REMINDERS"; SEND_FAILS=1
 reminder_loop & lp=$!; sleep 3; kill $lp 2>/dev/null; wait $lp 2>/dev/null
 check "a failed send keeps the reminder for the next round" 'grep -q "sem rede" "$REMINDERS"'
+
+# the reminder beep: plays the short sound, stops by itself, never interrupts an alarm, /parar cuts it
+REMINDER_BEEP_SECS=2; : > "$T/player.log"; rm -f "$D/ring.pid"
+beep_reminder; sleep 4
+check "the beep plays the reminder sound" 'grep -q "play .*Ding_Dong.ogg" "$T/player.log"'
+check "the beep stops by itself and frees the marker" '[ "$(tail -n1 "$T/player.log")" = stop ] && [ ! -e "$D/ring.pid" ]'
+: > "$T/player.log"; : > "$D/ring.pid"; beep_reminder; sleep 1
+check "the beep does not interrupt a ringing alarm" '! grep -q play "$T/player.log"'
+rm -f "$D/ring.pid"; : > "$T/player.log"; REMINDER_BEEP_SECS=30; beep_reminder; sleep 1; stop_ring; sleep 1
+check "/parar (stop_ring) cuts the beep" '[ ! -e "$D/ring.pid" ] && [ "$(tail -n1 "$T/player.log")" = stop ]'
+: > "$SENT"; : > "$T/player.log"; REMINDER_BEEP_SECS=2; SEND_FAILS=0; printf '7|%s|once||com toque\n' "$((now_s - 5))" > "$REMINDERS"
+reminder_loop & lp=$!; sleep 3; kill $lp 2>/dev/null; wait $lp 2>/dev/null
+check "a due reminder sends the message and rings" 'grep -q "Lembrete: com toque" "$SENT" && grep -q "play .*Ding_Dong" "$T/player.log"'
 exit $fails
