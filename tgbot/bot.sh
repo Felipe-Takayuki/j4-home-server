@@ -1,7 +1,7 @@
 #!/data/data/com.termux/files/usr/bin/bash
 # Bot do Telegram do servidor J4 (roda no Termux).
 # Config: ~/.tgbot/config com TOKEN e OWNER_ID. Só o OWNER_ID é atendido.
-# Comandos: /status /foto [frente] /tocar [nome|lista] /despertador /dns /parar /ajuda
+# Comandos: /status /foto [frente] /tocar [nome|lista] /despertador /lembrar /dns /parar /ajuda
 # Teste sem Telegram: bash bot.sh --status
 export PATH=/data/data/com.termux/files/usr/bin:$PATH
 H=/data/data/com.termux/files/home
@@ -59,6 +59,7 @@ API="https://api.telegram.org/bot$TOKEN"
 # O token entra por stdin (-K -), assim não aparece na lista de processos.
 tg() { local m=$1; shift; printf 'url = "%s/%s"\n' "$API" "$m" | curl -sS -m 70 -K - "$@"; }
 send() { tg sendMessage --data-urlencode "chat_id=$OWNER_ID" --data-urlencode "text=$1" >/dev/null 2>>"$D/bot.log"; }
+send_ok() { [ "$(tg sendMessage -m 15 --data-urlencode "chat_id=$OWNER_ID" --data-urlencode "text=$1" 2>>"$D/bot.log" | jq -r '.ok // false')" = true ]; }   # true só se o Telegram aceitou
 
 cmd_foto() {
   local cam=0 label=traseira f="$D/tmp/foto.jpg"
@@ -204,6 +205,160 @@ cmd_despertador() {
   send "⏰ Despertador $id criado: $t · $(mode_label "$mode") · som $snd"$'\n'"Próxima vez: $([ -n "$last" ] && echo "a partir de amanhã" || echo "hoje")"
 }
 
+# ---------- Lembretes (mensagem de texto, sem som) ----------
+# Arquivo $D/reminders, uma linha por lembrete:
+#   uma vez:    id|epoch|once||texto
+#   recorrente: id|HH:MM|daily/weekdays/weekend|ultimo_dia_disparado|texto
+# O texto fica por último porque pode ter "|".
+REMINDERS="$D/reminders"
+DIAS=(dom seg ter qua qui sex sáb)
+TIME_RE='^([01]?[0-9]|2[0-3])(:([0-5][0-9])|h([0-5][0-9])?)$'
+
+rlock()   { local i=0; until mkdir "$D/reminders.lock" 2>/dev/null; do sleep 0.2; i=$((i+1)); [ $i -gt 75 ] && rmdir "$D/reminders.lock" 2>/dev/null; done; }
+runlock() { rmdir "$D/reminders.lock" 2>/dev/null; }
+
+fmt_when() { echo "${DIAS[$(date -d "@$1" +%w)]} $(date -d "@$1" '+%d/%m %H:%M')"; }
+
+rel_seconds() {   # 30min, 45m, 2h, 1h30, 1h30min, 2d -> segundos
+  local n=${1,,}
+  if   [[ "$n" =~ ^([0-9]{1,4})(min|m)$ ]]; then echo $((10#${BASH_REMATCH[1]} * 60))
+  elif [[ "$n" =~ ^([0-9]{1,3})h([0-9]{1,2})?(min|m)?$ ]]; then echo $((10#${BASH_REMATCH[1]} * 3600 + 10#${BASH_REMATCH[2]:-0} * 60))
+  elif [[ "$n" =~ ^([0-9]{1,3})d$ ]]; then echo $((10#${BASH_REMATCH[1]} * 86400))
+  else return 1; fi
+}
+
+rdate() {   # hoje, amanhã, dia da semana ou dd/mm[/aaaa] -> AAAA-MM-DD. Retorna 1 se não é data, 2 se é data inválida
+  local n=${1,,} wd="" d m y s out
+  case "$n" in
+    hoje) date +%F; return 0;;
+    amanha|amanhã) date -d tomorrow +%F; return 0;;
+    segunda|segunda-feira) wd=monday;;
+    terca|terça|terca-feira|terça-feira) wd=tuesday;;
+    quarta|quarta-feira) wd=wednesday;;
+    quinta|quinta-feira) wd=thursday;;
+    sexta|sexta-feira) wd=friday;;
+    sabado|sábado) wd=saturday;;
+    domingo) wd=sunday;;
+  esac
+  if [ -n "$wd" ]; then date -d "next $wd" +%F; return 0; fi    # sempre a próxima ocorrência (nunca hoje)
+  [[ "$n" =~ ^([0-9]{1,2})/([0-9]{1,2})(/([0-9]{4}))?$ ]] || return 1
+  d=$((10#${BASH_REMATCH[1]})); m=$((10#${BASH_REMATCH[2]})); y=${BASH_REMATCH[4]}
+  if [ -n "$y" ]; then
+    printf -v s '%04d-%02d-%02d' "$y" "$m" "$d"
+    out=$(date -d "$s" +%F 2>/dev/null) && [ "$out" = "$s" ] && { echo "$s"; return 0; }
+    return 2
+  fi
+  y=$(date +%Y)
+  printf -v s '%04d-%02d-%02d' "$y" "$m" "$d"
+  out=$(date -d "$s" +%F 2>/dev/null) && [ "$out" = "$s" ] || return 2
+  if [[ "$s" < "$(date +%F)" ]]; then   # já passou este ano: vale o próximo
+    printf -v s '%04d-%02d-%02d' $((y+1)) "$m" "$d"
+    out=$(date -d "$s" +%F 2>/dev/null) && [ "$out" = "$s" ] || return 2
+  fi
+  echo "$s"
+}
+
+reminder_loop() {   # roda em segundo plano; confere a cada 15 s. Lembrete atrasado (bot/celular fora do ar) ainda é entregue.
+  local now_s now today dow id when mode last text out msg
+  while true; do
+    sleep 15
+    [ -s "$REMINDERS" ] || continue
+    now_s=$(date +%s); now=$(date +%H:%M); today=$(date +%F); dow=$(date +%u)
+    rlock
+    out="$D/reminders.new"; : > "$out"
+    while IFS='|' read -r id when mode last text; do
+      [ -z "$id" ] && continue
+      if [ "$mode" = once ]; then
+        if [[ "$when" =~ ^[0-9]+$ ]] && [ "$when" -le "$now_s" ]; then
+          msg="🔔 Lembrete: $text"
+          [ $((now_s - when)) -gt 300 ] && msg="$msg"$'\n'"(era para $(fmt_when "$when"); o servidor estava fora do ar)"
+          if send_ok "$msg"; then log "lembrete $id enviado"; continue; fi   # se o envio falhar, fica para a próxima rodada
+        fi
+      elif [[ ! "$now" < "$when" ]] && [ "$last" != "$today" ] && mode_ok "$mode" "$dow"; then
+        if send_ok "🔔 Lembrete: $text"; then last=$today; log "lembrete $id enviado"; fi
+      fi
+      printf '%s|%s|%s|%s|%s\n' "$id" "$when" "$mode" "$last" "$text" >> "$out"
+    done < "$REMINDERS"
+    mv "$out" "$REMINDERS"
+    runlock
+  done
+}
+
+cmd_lembrar() {
+  local args="$1" w n i=0 t="" dt="" rel="" mode=once text="" id last now today h m tgt now_s rc d
+  read -ra w <<<"$args"
+  case "${w[0],,}" in
+    ""|lista)
+      if [ ! -s "$REMINDERS" ]; then send $'🔔 Nenhum lembrete.\nCrie com: /lembrar amanhã 9h pagar a luz (veja /ajuda)'; return; fi
+      send "🔔 Lembretes:"$'\n'"$(while IFS='|' read -r id t mode last text; do
+        if [ "$mode" = once ]; then printf '%s) %s · %s\n' "$id" "$(fmt_when "$t")" "$text"
+        else printf '%s) %s %s · %s\n' "$id" "$(mode_label "$mode")" "$t" "$text"; fi; done < "$REMINDERS")"$'\n'"Apagar: /lembrar apagar N (ou todos)"
+      return;;
+    apagar|apaga|cancelar|remover)
+      id="${w[1],,}"
+      if [ "$id" = todos ]; then rlock; : > "$REMINDERS"; runlock; send "🗑 Todos os lembretes apagados."; return; fi
+      if [[ ! "$id" =~ ^[0-9]+$ ]] || ! grep -q "^$id|" "$REMINDERS" 2>/dev/null; then send "Não achei esse número. Veja /lembrar lista."; return; fi
+      rlock; grep -v "^$id|" "$REMINDERS" > "$REMINDERS.new"; mv "$REMINDERS.new" "$REMINDERS"; runlock
+      send "🗑 Lembrete $id apagado."; return;;
+  esac
+  # prefixo: [em 30min | data | horário | diario|semana|fds]; o resto é o texto
+  while [ $i -lt ${#w[@]} ]; do
+    n=${w[$i],,}
+    if [ "$n" = em ] && [ -z "$rel$t$dt" ] && [ "$mode" = once ]; then
+      i=$((i+1))
+      rel=$(rel_seconds "${w[$i]:-}") && [ "$rel" -gt 0 ] || { send "Não entendi a duração. Exemplos: em 30min, em 2h, em 1h30, em 2d"; return; }
+      i=$((i+1)); continue
+    fi
+    if [ -z "$t" ] && [ -z "$rel" ] && [[ "$n" =~ $TIME_RE ]]; then
+      h=$((10#${BASH_REMATCH[1]})); m=$((10#${BASH_REMATCH[3]:-${BASH_REMATCH[4]:-0}})); t=$(printf '%02d:%02d' "$h" "$m")
+      i=$((i+1)); continue
+    fi
+    if [ -z "$dt" ] && [ -z "$rel" ] && [ "$mode" = once ]; then
+      d=$(rdate "$n"); rc=$?
+      if [ $rc = 0 ]; then dt=$d; i=$((i+1)); continue; fi
+      if [ $rc = 2 ]; then send "Essa data não existe: $n"; return; fi
+    fi
+    if [ "$mode" = once ] && [ -z "$rel" ] && [ -z "$dt" ]; then
+      case "$n" in
+        diario|diaria|diário|diária|todos) mode=daily; i=$((i+1)); continue;;
+        todo) mode=daily; [ "${w[$((i+1))],,}" = dia ] && i=$((i+1)); i=$((i+1)); continue;;
+        semana|uteis|úteis) mode=weekdays; i=$((i+1)); continue;;
+        fds|fimdesemana) mode=weekend; i=$((i+1)); continue;;
+      esac
+    fi
+    break
+  done
+  text="${w[*]:$i}"
+  [ -z "$text" ] && { send $'Faltou o texto do lembrete.\nExemplo: /lembrar amanhã 9h pagar a luz'; return; }
+  [ ${#text} -gt 500 ] && { send "Texto muito longo (máximo 500 caracteres)."; return; }
+  now_s=$(date +%s); today=$(date +%F); now=$(date +%H:%M); last=""
+
+  if [ "$mode" != once ]; then
+    [ -z "$t" ] && { send "Falta o horário. Exemplo: /lembrar diario 8h tomar remédio"; return; }
+    [[ ! "$t" > "$now" ]] && last=$today   # o horário de hoje já passou: a primeira vez é amanhã
+    rlock
+    id=$(( $(cut -d'|' -f1 "$REMINDERS" 2>/dev/null | sort -n | tail -1) + 1 ))
+    printf '%s|%s|%s|%s|%s\n' "$id" "$t" "$mode" "$last" "$text" >> "$REMINDERS"; runlock
+    send "🔔 Lembrete $id criado: $(mode_label "$mode") às $t · $text"; return
+  fi
+
+  if [ -n "$rel" ]; then tgt=$((now_s + rel))
+  else
+    [ -z "$t" ] && [ -z "$dt" ] && { send $'Faltou quando.\nExemplos: /lembrar 18h ligar pro João · /lembrar amanhã 9h pagar a luz · /lembrar 25/12 comprar presente · /lembrar em 30min tirar a roupa'; return; }
+    [ -z "$t" ] && t=09:00   # só a data: 9h da manhã
+    if [ -z "$dt" ]; then   # só o horário: hoje, ou amanhã se já passou
+      tgt=$(date -d "$today $t" +%s)
+      [ "$tgt" -le "$now_s" ] && tgt=$(date -d "$(date -d tomorrow +%F) $t" +%s)
+    else tgt=$(date -d "$dt $t" +%s) || { send "Não entendi a data."; return; }
+    fi
+  fi
+  [ "$tgt" -le "$now_s" ] && { send "Esse horário já passou ($(fmt_when "$tgt"))."; return; }
+  rlock
+  id=$(( $(cut -d'|' -f1 "$REMINDERS" 2>/dev/null | sort -n | tail -1) + 1 ))
+  printf '%s|%s|once||%s\n' "$id" "$tgt" "$text" >> "$REMINDERS"; runlock
+  send "🔔 Lembrete $id criado para $(fmt_when "$tgt"): $text"
+}
+
 # ---------- Bloqueador de DNS (~/.dnsblock) ----------
 DNSD=$H/.dnsblock
 
@@ -258,7 +413,7 @@ dns_watch() {   # avisa quando o bloqueador cai e quando volta; tenta reiniciar 
 }
 
 cmd_ajuda() {
-  send $'🤖 Servidor J4\n/status: bateria, RAM, disco, rede e serviços\n/foto: foto da câmera traseira (/foto frente para a frontal)\n/tocar: faz o celular tocar (/tocar lista, /tocar nome)\n/despertador: /despertador 07:30 [diario|semana|fds] [som], /despertador lista, /despertador apagar N\n/dns: bloqueador de anúncios (consultas, bloqueios, mais bloqueados)\n/parar: silencia o som e o despertador\n/ajuda: esta mensagem'
+  send $'🤖 Servidor J4\n/status: bateria, RAM, disco, rede e serviços\n/foto: foto da câmera traseira (/foto frente para a frontal)\n/tocar: faz o celular tocar (/tocar lista, /tocar nome)\n/despertador: /despertador 07:30 [diario|semana|fds] [som], /despertador lista, /despertador apagar N\n/lembrar: mensagem no horário, sem som. Ex.: /lembrar amanhã 9h pagar a luz · /lembrar em 30min · /lembrar 25/12 · /lembrar diario 8h remédio · /lembrar lista · /lembrar apagar N\n/dns: bloqueador de anúncios (consultas, bloqueios, mais bloqueados)\n/parar: silencia o som e o despertador\n/ajuda: esta mensagem'
 }
 
 handle() {
@@ -277,6 +432,7 @@ handle() {
     /foto)    cmd_foto "${arg,,}";;
     /tocar)   cmd_tocar "$arg";;
     /despertador|/alarme) cmd_despertador "$full";;
+    /lembrar|/lembrete|/lembretes) cmd_lembrar "$full";;
     /dns)     cmd_dns;;
     /parar)   stop_ring; send "🔕 Som parado.";;
     *)        send "Não conheço esse comando. Use /ajuda.";;
@@ -299,9 +455,11 @@ fi
 # despertadores: laço separado, para não depender do getUpdates (que bloqueia ~50 s)
 alarm_loop &
 ALARM_PID=$!
+reminder_loop &
+REM_PID=$!
 dns_watch &
 DNSW_PID=$!
-trap 'kill $ALARM_PID $DNSW_PID 2>/dev/null; rmdir "$D/alarms.lock" 2>/dev/null' EXIT
+trap 'kill $ALARM_PID $REM_PID $DNSW_PID 2>/dev/null; rmdir "$D/alarms.lock" "$D/reminders.lock" 2>/dev/null' EXIT
 
 offset=$(cat "$D/offset" 2>/dev/null || echo 0)
 while true; do

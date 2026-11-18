@@ -13,6 +13,7 @@ Messages are in Brazilian Portuguese.
 | `/tocar [nome]` / `/tocar lista` | plays a built-in Android ringtone/notification sound (default `Basic_Bell`); `lista` shows the names |
 | `/despertador …` | alarm clock, see [09](09-alarm-clock.md) (`/alarme` is an alias) |
 | `/dns` | ad-blocker status and today's numbers, see [10](10-dns-adblocker.md) |
+| `/lembrar …` | text reminder at a given time, no sound, see [15](15-reminders.md) (`/lembretes` is an alias) |
 | `/parar` | stops any sound, including a ringing alarm |
 | `/ajuda` | lists the commands |
 
@@ -58,6 +59,7 @@ watches the DNS blocker and alerts you when it fails ([10](10-dns-adblocker.md))
 | `~/.tgbot/config` | token and owner id (`chmod 600`) |
 | `~/.tgbot/offset` | last Telegram update id handled |
 | `~/.tgbot/alarms` | alarm clock data ([09](09-alarm-clock.md)) |
+| `~/.tgbot/reminders` | text reminders ([15](15-reminders.md)) |
 | `~/.tgbot/boot_ts`, `last_boot` | detect "first start after a boot" |
 | `~/.termux/boot/50-tgbot` | starts the supervisor at boot |
 
@@ -65,4 +67,4 @@ watches the DNS blocker and alerts you when it fails ([10](10-dns-adblocker.md))
 
 - Run `bash tgbot/bot.sh --status` (on the phone) to print the `/status` text without Telegram.
 - A new command is a `cmd_xxx` function plus one line in `handle()`. Only the first word of the arguments is passed as `$arg`; the whole text is in `$full`.
-- Pure-logic parts (alarm parsing/scheduling) are covered by `tests/test_alarm.sh`.
+- Pure-logic parts (alarm parsing/scheduling) are covered by `tests/test_alarm.sh` and `tests/test_reminders.sh`.

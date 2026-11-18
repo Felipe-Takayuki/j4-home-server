@@ -23,6 +23,7 @@ A parte mais valiosa do repositório não é o código: é a **lista do que queb
 | **Nuvem** | Servidor de arquivos [dufs](https://github.com/sigoden/dufs) (WebDAV, busca, zip) atrás do `tailscale serve` | [06](docs/06-dufs-cloud.md) |
 | **Interface web** | UI responsiva em um arquivo só: grade/lista, visualizador de vídeo e imagem, arrastar pastas, renomear/mover, painel de armazenamento, tema claro/escuro | [07](docs/07-web-ui.md) |
 | **Bot do Telegram** | `/status`, `/foto` (câmera), `/tocar`, `/despertador`, `/dns`, `/parar`; só responde a você | [08](docs/08-telegram-bot.md) |
+| **Lembretes** | Lembretes de texto pelo Telegram: `/lembrar amanhã 9h pagar a luz`, `em 30min`, `25/12`, `diario 8h`; se o servidor estava fora do ar, chega atrasado em vez de se perder | [15](docs/15-reminders.md) |
 | **Despertador** | Programe alarmes pelo Telegram; o celular toca até você mandar `/parar` | [09](docs/09-alarm-clock.md) |
 | **Bloqueador de anúncios** | ~76 mil domínios servidos como DNS sobre TLS no seu tailnet, para o *DNS privado* do Android, com vigia | [10](docs/10-dns-adblocker.md) |
 | **Launcher leve** | Tela inicial opcional só de texto, 12 KB (~10 MB de RAM contra ~25 MB do Olauncher), compilada com as ferramentas do SDK | [14](docs/14-light-launcher.md) |
