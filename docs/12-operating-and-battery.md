@@ -30,6 +30,19 @@ What you can do:
 `stay_on_while_plugged_in` keeps the screen on while charging. It makes the phone easy to drive over `adb` but wears the display and adds heat.
 Turn it off (`adb shell settings put global stay_on_while_plugged_in 0`) once everything is installed; the services keep running with the screen off.
 
+## Skip the lock screen (wake straight into the launcher)
+
+The lock screen is drawn by Samsung's SystemUI, so its look cannot be changed without root. What you *can* do is not have one, so the screen wakes straight into the
+[launcher](14-light-launcher.md). Only do this if the phone has **no PIN/pattern** (just "swipe"): nothing is protected today, so nothing is lost; with a PIN it would not work.
+
+```sh
+adb shell settings put secure lockscreen.disabled 1      # Samsung One UI 2 / Android 10 (this is the setting that works)
+adb shell locksettings set-disabled true                 # the AOSP command; it alone did NOT hide the Samsung lock screen
+```
+
+Check: `adb shell input keyevent KEYCODE_SLEEP`, wait 20 s, `KEYCODE_WAKEUP` → the launcher appears. Undo: `settings put secure lockscreen.disabled 0` and `locksettings set-disabled false`.
+Anyone who holds the phone then has full access (Termux included), the same as with a swipe-only lock. Keep the phone somewhere private. *(Not checked: whether it survives a reboot.)*
+
 ## Restarting things
 
 ```sh
