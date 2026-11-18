@@ -9,7 +9,7 @@ Messages are in Brazilian Portuguese.
 | Command | What it does |
 |---|---|
 | `/status` | battery (level, charging state, temperature, health, warnings above 40 °C or below 20 % unplugged), RAM, disk, uptime, Tailscale state/IP, and whether `sshd`, `dufs`, `tailscaled` and (if installed) the `dns` ad blocker are running |
-| `/foto` / `/foto frente` | takes a photo with the rear (or front) camera and sends it; the photo is deleted from the phone right after sending. Works with the screen off. There is no flash option (see [11](11-android10-pitfalls.md#no-flash-with-termux-camera-photo)) |
+| `/foto` / `/foto frente` / `/foto flash` | takes a photo with the rear (or front) camera and sends it; the photo is deleted from the phone right after sending. Works with the screen off. `/foto flash` uses the rear camera with the LED lit, via the FlashCam app and wakes the screen for a few seconds ([16](16-flash-photo.md)) |
 | `/tocar [nome]` / `/tocar lista` | plays a built-in Android ringtone/notification sound (default `Basic_Bell`); `lista` shows the names |
 | `/despertador …` | alarm clock, see [09](09-alarm-clock.md) (`/alarme` is an alias) |
 | `/dns` | ad-blocker status and today's numbers, see [10](10-dns-adblocker.md) |

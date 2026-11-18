@@ -27,6 +27,7 @@ A parte mais valiosa do repositório não é o código: é a **lista do que queb
 | **Despertador** | Programe alarmes pelo Telegram; o celular toca até você mandar `/parar` | [09](docs/09-alarm-clock.md) |
 | **Bloqueador de anúncios** | ~76 mil domínios servidos como DNS sobre TLS no seu tailnet, para o *DNS privado* do Android, com vigia | [10](docs/10-dns-adblocker.md) |
 | **Launcher leve** | Tela inicial opcional só de texto, 12 KB (~10 MB de RAM contra ~25 MB do Olauncher), compilada com as ferramentas do SDK | [14](docs/14-light-launcher.md) |
+| **Foto com flash** | `/foto flash`: câmera traseira com o LED aceso, por um app auxiliar de 17 KB (a câmera do Termux não consegue usar o flash); as fotos nunca ficam guardadas | [16](docs/16-flash-photo.md) |
 | **Ferramentas** | Rodar scripts dentro do Termux pelo PC via `adb` (sem SSH), testes offline, CI | [13](docs/13-deploying-from-a-pc.md) |
 
 ## Começo rápido

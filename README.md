@@ -27,6 +27,7 @@ they were worked around** ([docs/11](docs/11-android10-pitfalls.md)).
 | **Alarm clock** | Set alarms from Telegram; the phone rings until you send `/parar` | [09](docs/09-alarm-clock.md) |
 | **DNS ad blocker** | ~76k-domain blocklist served as DNS-over-TLS on your tailnet for Android's *Private DNS*, with a watchdog | [10](docs/10-dns-adblocker.md) |
 | **Light launcher** | Optional 12 KB text-only home screen (~10 MB RAM vs ~25 MB for Olauncher), built with plain SDK tools | [14](docs/14-light-launcher.md) |
+| **Flash photo** | `/foto flash`: rear camera with the LED lit, through a 17 KB helper app (the stock Termux camera cannot use the flash); photos are never stored | [16](docs/16-flash-photo.md) |
 | **Tooling** | Run scripts inside Termux from the PC over `adb` (no SSH needed), offline tests, CI | [13](docs/13-deploying-from-a-pc.md) |
 
 ```

@@ -7,6 +7,7 @@ export PATH=/data/data/com.termux/files/usr/bin:$PATH
 H=/data/data/com.termux/files/home
 D=$H/.tgbot
 mkdir -p "$D/tmp"; chmod 700 "$D" "$D/tmp"
+rm -f "$D"/tmp/foto.jpg "$D"/tmp/foto.jpg.err   # fotos nunca ficam guardadas: limpa qualquer sobra de uma queda no meio do envio
 
 log() { printf '%s %s\n' "$(date '+%F %T')" "$*" >> "$D/bot.log"; }
 
@@ -61,18 +62,60 @@ tg() { local m=$1; shift; printf 'url = "%s/%s"\n' "$API" "$m" | curl -sS -m 70 
 send() { tg sendMessage --data-urlencode "chat_id=$OWNER_ID" --data-urlencode "text=$1" >/dev/null 2>>"$D/bot.log"; }
 send_ok() { [ "$(tg sendMessage -m 15 --data-urlencode "chat_id=$OWNER_ID" --data-urlencode "text=$1" 2>>"$D/bot.log" | jq -r '.ok // false')" = true ]; }   # true só se o Telegram aceitou
 
-cmd_foto() {
-  local cam=0 label=traseira f="$D/tmp/foto.jpg"
-  case "$1" in frente|frontal) cam=1; label=frontal;; esac
+FOTO_FLASH_WAIT=45   # segundos esperando o app de flash devolver a foto
+
+foto_flash() {   # $1=arquivo de saída. Pede a foto ao app J4 FlashCam (flashcam/) e a recebe em 127.0.0.1.
+  local f=$1 port key srv
+  port=$((20000 + RANDOM % 20000)); key=$(head -c 12 /dev/urandom | od -An -tx1 | tr -d ' \n')
+  rm -f "$f" "$f.err"
+  python3 - "$port" "$key" "$f" "$FOTO_FLASH_WAIT" <<'PY' &
+import sys, time, http.server
+port, key, out, wait = int(sys.argv[1]), sys.argv[2], sys.argv[3], float(sys.argv[4])
+class H(http.server.BaseHTTPRequestHandler):
+    def do_POST(self):
+        n = int(self.headers.get('Content-Length', 0))
+        if self.path != '/' + key or n > 30000000:   # só aceita quem sabe a chave desta foto
+            self.send_response(403); self.end_headers(); return
+        data = self.rfile.read(n)
+        open(out if self.headers.get('X-Result') == 'ok' else out + '.err', 'wb').write(data)
+        self.send_response(200); self.end_headers(); self.server.done = True
+    def log_message(self, *a): pass
+s = http.server.HTTPServer(('127.0.0.1', port), H); s.done = False; s.timeout = 1
+end = time.time() + wait
+while not s.done and time.time() < end: s.handle_request()
+PY
+  srv=$!
+  sleep 0.5   # deixa o servidor começar a escutar
+  if ! am start -n com.j4.flashcam/.FlashActivity --ei port "$port" --es key "$key" >"$D/tmp/am.out" 2>&1 || grep -qiE 'error|exception' "$D/tmp/am.out"; then
+    log "foto flash: am start falhou: $(head -c 200 "$D/tmp/am.out")"
+    kill "$srv" 2>/dev/null; wait "$srv" 2>/dev/null
+    return 2
+  fi
+  wait "$srv"
+  [ -s "$f" ]
+}
+
+cmd_foto() {   # $1 = argumentos: frente|frontal e/ou flash|luz|lanterna
+  local cam=0 label=traseira f="$D/tmp/foto.jpg" flash=0 w ws rc
+  read -ra ws <<<"$1"
+  for w in "${ws[@]}"; do case "${w,,}" in
+    frente|frontal) cam=1; label=frontal;;
+    flash|luz|lanterna) flash=1;;
+  esac; done
+  if [ $flash = 1 ] && [ $cam = 1 ]; then send "A câmera frontal não tem flash. Use /foto flash (traseira)."; return; fi
   rm -f "$f"
   tg sendChatAction --data-urlencode "chat_id=$OWNER_ID" --data-urlencode "action=upload_photo" >/dev/null 2>&1
-  if timeout 60 termux-camera-photo -c "$cam" "$f" 2>>"$D/bot.log" && [ -s "$f" ]; then
-    tg sendPhoto -m 150 -F "chat_id=$OWNER_ID" -F "photo=@$f" -F "caption=📷 Câmera $label · $(date '+%d/%m/%Y %H:%M:%S')" >/dev/null 2>>"$D/bot.log" \
-      || send "Tirei a foto, mas não consegui enviar."
-  else
-    send "Não consegui tirar a foto (câmera ocupada ou sem permissão)."
+  if [ $flash = 1 ]; then
+    foto_flash "$f"; rc=$?
+    if [ $rc = 2 ]; then send "Não consegui abrir o app de flash. Ele está instalado? (flashcam/install.sh no PC; veja docs/16)"; rm -f "$f" "$f.err"; return; fi
+    if [ $rc != 0 ]; then send "Não consegui tirar a foto com flash: $(head -c 200 "$f.err" 2>/dev/null || echo 'sem resposta do app')"; rm -f "$f" "$f.err"; return; fi
+    label="traseira com flash"
+  elif ! { timeout 60 termux-camera-photo -c "$cam" "$f" 2>>"$D/bot.log" && [ -s "$f" ]; }; then
+    send "Não consegui tirar a foto (câmera ocupada ou sem permissão)."; rm -f "$f"; return
   fi
-  rm -f "$f"   # a foto nunca fica guardada no celular
+  tg sendPhoto -m 150 -F "chat_id=$OWNER_ID" -F "photo=@$f" -F "caption=📷 Câmera $label · $(date '+%d/%m/%Y %H:%M:%S')" >/dev/null 2>>"$D/bot.log" \
+    || send "Tirei a foto, mas não consegui enviar."
+  rm -f "$f" "$f.err"   # a foto nunca fica guardada no celular
 }
 
 SOUND_DIRS="/system/media/audio/ringtones /system/media/audio/notifications"
@@ -433,7 +476,7 @@ dns_watch() {   # avisa quando o bloqueador cai e quando volta; tenta reiniciar 
 }
 
 cmd_ajuda() {
-  send $'🤖 Servidor J4\n/status: bateria, RAM, disco, rede e serviços\n/foto: foto da câmera traseira (/foto frente para a frontal)\n/tocar: faz o celular tocar (/tocar lista, /tocar nome)\n/despertador: /despertador 07:30 [diario|semana|fds] [som], /despertador lista, /despertador apagar N\n/lembrar: mensagem + toque de 10 s no horário. Ex.: /lembrar amanhã 9h pagar a luz · /lembrar em 30min · /lembrar 25/12 · /lembrar diario 8h remédio · /lembrar lista · /lembrar apagar N\n/dns: bloqueador de anúncios (consultas, bloqueios, mais bloqueados)\n/parar: silencia o som e o despertador\n/ajuda: esta mensagem'
+  send $'🤖 Servidor J4\n/status: bateria, RAM, disco, rede e serviços\n/foto: foto da câmera traseira (/foto frente para a frontal, /foto flash para a traseira com flash)\n/tocar: faz o celular tocar (/tocar lista, /tocar nome)\n/despertador: /despertador 07:30 [diario|semana|fds] [som], /despertador lista, /despertador apagar N\n/lembrar: mensagem + toque de 10 s no horário. Ex.: /lembrar amanhã 9h pagar a luz · /lembrar em 30min · /lembrar 25/12 · /lembrar diario 8h remédio · /lembrar lista · /lembrar apagar N\n/dns: bloqueador de anúncios (consultas, bloqueios, mais bloqueados)\n/parar: silencia o som e o despertador\n/ajuda: esta mensagem'
 }
 
 handle() {
@@ -449,7 +492,7 @@ handle() {
   case "$cmd" in
     /start|/ajuda|/help) cmd_ajuda;;
     /status)  send "$(status_text)";;
-    /foto)    cmd_foto "${arg,,}";;
+    /foto)    cmd_foto "$full";;
     /tocar)   cmd_tocar "$arg";;
     /despertador|/alarme) cmd_despertador "$full";;
     /lembrar|/lembrete|/lembretes) cmd_lembrar "$full";;
@@ -458,6 +501,9 @@ handle() {
     *)        send "Não conheço esse comando. Use /ajuda.";;
   esac
 }
+
+# teste sem Telegram de verdade na entrada: bash bot.sh --foto [frente|flash]  (a foto vai para o seu Telegram)
+if [ "$1" = --foto ]; then shift; cmd_foto "$*"; exit 0; fi
 
 # valida o token antes de começar
 me=$(tg getMe 2>>"$D/bot.log")

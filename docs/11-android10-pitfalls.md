@@ -79,4 +79,4 @@ and the phone stack (~50 MB). The phone already has ~1.5 GB of zram swap. Heavy 
 
 `termux-camera-photo` has no flash option, and the obvious workaround does not work: `termux-torch on` followed by a photo (torch lit before the camera opens, or lit
 0.3–1.5 s after it opens) gives a photo with **identical exposure** to one without it (1/17 s, ISO ~1990 in a dark room, both ways), because Android switches the torch off
-the moment a camera client opens the device. The photos are not lit. A real flash needs an app that drives the camera itself (Camera2 with a flash mode); nothing in this repo does that yet.
+the moment a camera client opens the device. The photos are not lit. A real flash needs an app that drives the camera itself (Camera2 with a torch/flash mode held by the *same* session): that is `flashcam/`, see [16](16-flash-photo.md).

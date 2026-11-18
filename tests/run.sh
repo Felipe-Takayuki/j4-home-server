@@ -9,6 +9,7 @@ find . -name __pycache__ -type d -prune -exec rm -rf {} +
 echo "== dnsblock unit tests"; python3 -m unittest -v tests/test_dnsblock.py || rc=1
 echo "== alarm tests"; bash tests/test_alarm.sh || rc=1
 echo "== reminder tests"; bash tests/test_reminders.sh || rc=1
+echo "== photo tests"; bash tests/test_foto.sh || rc=1
 find . -name __pycache__ -type d -prune -exec rm -rf {} +
 [ $rc = 0 ] && echo "ALL OK" || echo "FAILED"
 exit $rc
