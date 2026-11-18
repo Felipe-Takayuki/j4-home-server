@@ -44,4 +44,5 @@ Then update the bot (`tools/adb-run.sh install/tgbot.sh`) and send `/foto flash`
 - The screen lights up for a few seconds on every `/foto flash`: not for discreet use.
 - It needs the camera to be free (another app using it makes the request fail with a message).
 - Test without Telegram in the loop on the phone: `bash ~/.tgbot/bot.sh --foto flash` (the photo still goes to your Telegram).
+- Verified end to end on the author's J4: triggered from Termux with the screen off, the photo arrived in Telegram.
 - Tested only on the author's J4 (Android 10). Other devices may differ in sizes, focus and how long the torch needs to settle.
