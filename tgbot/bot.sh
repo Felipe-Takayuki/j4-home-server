@@ -39,6 +39,9 @@ status_text() {
   pgrep -x sshd >/dev/null && svc="$svc ✅sshd" || svc="$svc ❌sshd"
   pgrep -f 'bin/dufs' >/dev/null && svc="$svc ✅dufs" || svc="$svc ❌dufs"
   pgrep -f 'bin/tailscaled' >/dev/null && svc="$svc ✅tailscaled" || svc="$svc ❌tailscaled"
+  if [ -f "$H/.dnsblock/dnsblock.py" ]; then   # só aparece se o bloqueador estiver instalado
+    pgrep -f 'dnsblock[.]py' >/dev/null && svc="$svc ✅dns" || svc="$svc ❌dns"
+  fi
 
   printf '%s\n🧠 RAM: %s disponíveis de %s\n💾 Disco: %s livres de %s' "$line" "$(human "$rama")" "$(human "$ramt")" "$(human "$dsk_f")" "$(human "$dsk_t")"
   [ -n "$cloud" ] && printf ' (Nuvem: %s)' "$(human "$cloud")"

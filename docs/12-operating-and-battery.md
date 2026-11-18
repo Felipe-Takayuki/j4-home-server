@@ -5,7 +5,7 @@
 - Termux, Termux:Boot, Termux:API (and Tailscale if you use its app) are **battery-unrestricted**.
 - `termux-wake-lock` is held (the boot scripts do it); Android shows Termux's persistent notification while it is.
 - Free RAM stays above ~500 MB (`/status` shows it).
-- The bot's `/status` shows `sshd`, `dufs`, `tailscaled` as ✅.
+- The bot's `/status` shows `sshd`, `dufs`, `tailscaled` (and `dns`, if the ad blocker is installed) as ✅.
 - `/dns` shows the ad blocker active (if installed).
 
 ## The battery problem (read this)

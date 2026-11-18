@@ -8,7 +8,7 @@ Messages are in Brazilian Portuguese.
 
 | Command | What it does |
 |---|---|
-| `/status` | battery (level, charging state, temperature, health, warnings above 40 °C or below 20 % unplugged), RAM, disk, uptime, Tailscale state/IP, and whether `sshd`, `dufs` and `tailscaled` are running |
+| `/status` | battery (level, charging state, temperature, health, warnings above 40 °C or below 20 % unplugged), RAM, disk, uptime, Tailscale state/IP, and whether `sshd`, `dufs`, `tailscaled` and (if installed) the `dns` ad blocker are running |
 | `/foto` / `/foto frente` | takes a photo with the rear (or front) camera and sends it; the photo is deleted from the phone right after sending. Works with the screen off |
 | `/tocar [nome]` / `/tocar lista` | plays a built-in Android ringtone/notification sound (default `Basic_Bell`); `lista` shows the names |
 | `/despertador …` | alarm clock, see [09](09-alarm-clock.md) (`/alarme` is an alias) |
