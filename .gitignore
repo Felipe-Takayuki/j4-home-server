@@ -11,3 +11,6 @@ __pycache__/
 .impeccable/
 node_modules/
 .DS_Store
+
+# built APK
+launcher/out/
