@@ -53,8 +53,9 @@ um token de bot do Telegram. Os detalhes e todas as armadilhas estão nos docume
   (alarme, `/parar`, alertas), bloqueio de DNS em dois celulares Android via DNS privado, resolução de nomes do tailnet,
   alertas de queda e volta do vigia.
 - **Coberto por testes automáticos (sem celular):** o servidor de DNS e a lógica do despertador. Veja [tests/](tests/).
-- **Não verificado:** um reinício completo do celular com todos os serviços voltando sozinhos; `install/cloud.sh` em um
-  aparelho limpo; outros modelos e versões de Android.
+- **Verificado após um reinício real:** todos os serviços (sshd, dufs, tailscaled, bloqueador de DNS, bot e loop de status) voltaram sozinhos
+  uns 20 s depois de o Android terminar de ligar, o Tailscale reconectou com o mesmo endereço, a nuvem respondeu por HTTPS e o bloqueador respondeu por DoT.
+- **Não verificado:** `install/cloud.sh` em um aparelho limpo; outros modelos e versões de Android.
 
 ## Segurança em um parágrafo
 

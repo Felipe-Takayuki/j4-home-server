@@ -67,8 +67,9 @@ This is a personal project that works on **one device** (the author's J4). Be ho
   alerts), DNS blocking from two Android phones through Private DNS, tailnet-name resolution fix, the watchdog's down/up alerts.
 - **Covered by automated tests (no phone needed):** the DNS server (list parsing, matching, packet building, UDP/TCP/DoT framing,
   tailnet answers) and the alarm logic (parsing, scheduling, firing). See [tests/](tests/).
-- **Not verified:** a full reboot of the phone bringing every service back by itself; `install/cloud.sh` on a clean
-  device (the other two installers were exercised on the real one); other phone models and Android versions.
+- **Verified after a real reboot:** every service (sshd, dufs, tailscaled, the DNS blocker, the bot, the status loop) came back by itself within
+  about 20 s of Android finishing boot, Tailscale reconnected with the same address, the cloud answered over HTTPS and the DNS blocker answered over DoT.
+- **Not verified:** `install/cloud.sh` on a clean device (the other two installers were exercised on the real one); other phone models and Android versions.
 
 ## Security in one paragraph
 

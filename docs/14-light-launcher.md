@@ -50,4 +50,6 @@ Termux, the bot and the web UI keep working, and you can `adb install` a launche
 
 ## Not verified
 
+Reboot: the launcher stayed the default home after a real reboot.
+
 Tested only on the author's J4 (Android 10, 360×640). The 12-hour/24-hour clock is forced to 24 h, and the date is in Portuguese (edit `MainActivity.java`).

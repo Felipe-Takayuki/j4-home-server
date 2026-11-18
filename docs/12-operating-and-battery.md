@@ -41,7 +41,7 @@ adb shell locksettings set-disabled true                 # the AOSP command; it 
 ```
 
 Check: `adb shell input keyevent KEYCODE_SLEEP`, wait 20 s, `KEYCODE_WAKEUP` → the launcher appears. Undo: `settings put secure lockscreen.disabled 0` and `locksettings set-disabled false`.
-Anyone who holds the phone then has full access (Termux included), the same as with a swipe-only lock. Keep the phone somewhere private. *(Not checked: whether it survives a reboot.)*
+Anyone who holds the phone then has full access (Termux included), the same as with a swipe-only lock. Keep the phone somewhere private. *(Survived a reboot.)*
 
 ## A cleaner quick-settings panel
 
@@ -55,7 +55,7 @@ adb shell settings put secure sysui_qs_tiles "Wifi,SoundMode,Flashlight"
 
 Undo with the value you saved, or delete the setting: `adb shell settings delete secure sysui_qs_tiles` (Android rebuilds the default list).
 Other tile names seen on the J4: `Bluetooth`, `RotationLock`, `AirplaneMode`, `MobileData`, `Hotspot`, `Location`, `Dnd`, `BlueLightFilter`, `NavigationBar`.
-Saves almost no RAM; it only removes clutter and buttons whose app was debloated away (Bluetooth, for one). *(Not checked: whether it survives a reboot.)*
+Saves almost no RAM; it only removes clutter and buttons whose app was debloated away (Bluetooth, for one). *(Survived a reboot.)*
 
 ## Restarting things
 
@@ -71,7 +71,11 @@ ts-start                        # tailscaled
 Re-run the matching installer from the PC (`tools/adb-run.sh install/<x>.sh`). They back up what they replace (`bot.sh.bak`), validate syntax before swapping files, and
 restart only the affected service.
 
-## Unverified: reboot
+## After a reboot
 
-A full reboot should bring everything back (boot scripts are numbered and idempotent), but this was **not verified** end to end. After you reboot your phone for the first time,
-check `/status`, `/dns` and open the cloud; then tell the project (issue or PR to this page) how it went.
+Verified on the author's J4 (`adb reboot`): Android reported boot completed after ~45 s and **sshd, dufs, tailscaled, the DNS blocker and the bot were all running
+about 20 s after that**; `/status` showed every service ✅ with Tailscale `Running` on the same address, the cloud answered `401` (auth required, as it should) over
+HTTPS, and the DNS blocker answered over DoT (an ad domain → `0.0.0.0`, a normal one resolved). The lock-screen bypass, quick-settings tiles and default launcher also survived.
+After your own first reboot, check `/status`, `/dns` and open the cloud, and tell the project how it went.
+
+Not checked: a reboot while on battery, and whether the "✅ Servidor ligado" message arrives (it depends on the boot script's timestamp).

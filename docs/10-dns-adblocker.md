@@ -79,7 +79,7 @@ On each phone that runs the Tailscale app: **Settings → Network → Private DN
 - Apps with their own DNS-over-HTTPS or fixed IPs, and ads served from the same domain as the content (e.g. YouTube), are not blocked.
 - Upstream traffic to 1.1.1.1/9.9.9.9/8.8.8.8 is plain UDP from the phone's network. Change `UPSTREAMS` in the script if you prefer another resolver.
 - Anyone on the tailnet can use it as a resolver ([SECURITY.md](../SECURITY.md)).
-- Not verified: behaviour after a reboot of the phone.
+- After a real reboot of the phone the blocker came back on its own and answered over DoT (see [12](12-operating-and-battery.md)).
 
 ## Tests
 

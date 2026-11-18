@@ -39,7 +39,7 @@ It uses the sounds already on the phone, so the J4 becomes a bedside alarm that 
 - Precision is ~15 s. The phone must be on, with Termux alive (the wake lock does that; see [12](12-operating-and-battery.md)).
 - If the phone is in silent/Do-Not-Disturb mode, the `music` stream may still be muted on some ROMs. Test once.
 - Alarms that fall while the phone is off are **not** rung afterwards.
-- Recurring alarms are stored in a file, so they should survive a reboot, but this has not been verified on the device after a real reboot.
+- Recurring alarms are stored in a file, so they should survive a reboot (the file is in `~/.tgbot`; the bot itself was verified to come back after a real reboot, but a recurring alarm firing after one was not).
 - No snooze yet (create a one-shot alarm a few minutes later).
 
 ## Tests
