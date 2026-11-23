@@ -12,7 +12,7 @@ bash -n "$D/bot.sh.new"
 mv "$D/bot.sh.new" "$D/bot.sh"; mv "$D/run.sh.new" "$D/run.sh"
 curl -fsS "$BASE/termux/boot/50-tgbot" -o "$HOME/.termux/boot/50-tgbot"
 chmod 755 "$D/run.sh" "$HOME/.termux/boot/50-tgbot"
-for c in jq curl termux-battery-status termux-camera-photo termux-media-player; do
+for c in jq curl termux-battery-status termux-camera-photo termux-torch termux-media-player; do
   command -v "$c" >/dev/null || echo "WARNING: '$c' not found (pkg install jq curl termux-api)"
 done
 if [ ! -f "$D/config" ]; then

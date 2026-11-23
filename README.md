@@ -22,7 +22,7 @@ they were worked around** ([docs/11](docs/11-android10-pitfalls.md)).
 | **Tailscale** | Private network + HTTPS certificates, in userspace mode (no VPN slot, no root) | [05](docs/05-tailscale.md) |
 | **Cloud** | [dufs](https://github.com/sigoden/dufs) file server (WebDAV, search, zip) behind `tailscale serve` | [06](docs/06-dufs-cloud.md) |
 | **Web UI** | A single-file responsive UI for dufs: grid/list, video/image viewer, drag-and-drop folders, rename/move, storage panel, dark/light | [07](docs/07-web-ui.md) |
-| **Telegram bot** | `/status`, `/foto` (camera), `/tocar` (play a sound), `/despertador`, `/dns`, `/parar` — answers only to you | [08](docs/08-telegram-bot.md) |
+| **Telegram bot** | `/status`, `/foto` (camera), `/lanterna` (flashlight), `/tocar` (play a sound), `/despertador`, `/dns`, `/parar` — answers only to you | [08](docs/08-telegram-bot.md) |
 | **Reminders** | Text reminders by Telegram: `/lembrar amanhã 9h pagar a luz`, `em 30min`, `25/12`, `diario 8h`; delivered late rather than lost | [15](docs/15-reminders.md) |
 | **Alarm clock** | Set alarms from Telegram; the phone rings until you send `/parar` | [09](docs/09-alarm-clock.md) |
 | **DNS ad blocker** | ~76k-domain blocklist served as DNS-over-TLS on your tailnet for Android's *Private DNS*, with a watchdog | [10](docs/10-dns-adblocker.md) |

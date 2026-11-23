@@ -1,7 +1,7 @@
 #!/data/data/com.termux/files/usr/bin/bash
 # Bot do Telegram do servidor J4 (roda no Termux).
 # Config: ~/.tgbot/config com TOKEN e OWNER_ID. Só o OWNER_ID é atendido.
-# Comandos: /status /foto [frente] /tocar [nome|lista] /despertador /lembrar /dns /parar /ajuda
+# Comandos: /status /foto [frente] /lanterna on|off /tocar [nome|lista] /despertador /lembrar /dns /parar /ajuda
 # Teste sem Telegram: bash bot.sh --status
 export PATH=/data/data/com.termux/files/usr/bin:$PATH
 H=/data/data/com.termux/files/home
@@ -116,6 +116,20 @@ cmd_foto() {   # $1 = argumentos: frente|frontal e/ou flash|luz|lanterna
   tg sendPhoto -m 150 -F "chat_id=$OWNER_ID" -F "photo=@$f" -F "caption=📷 Câmera $label · $(date '+%d/%m/%Y %H:%M:%S')" >/dev/null 2>>"$D/bot.log" \
     || send "Tirei a foto, mas não consegui enviar."
   rm -f "$f" "$f.err"   # a foto nunca fica guardada no celular
+}
+
+cmd_lanterna() {   # $1 = on|off (a lanterna é o LED do flash, traseiro; termux-torch vem do Termux:API)
+  local want
+  case "${1,,}" in
+    on|ligar|liga|acender|acende|1)  want=on;;
+    off|desligar|desliga|apagar|apaga|0) want=off;;
+    *) send $'🔦 Use /lanterna on para acender e /lanterna off para apagar.'; return;;
+  esac
+  if timeout 15 termux-torch "$want" 2>>"$D/bot.log"; then
+    [ "$want" = on ] && send "🔦 Lanterna acesa. Use /lanterna off para apagar." || send "🔦 Lanterna apagada."
+  else
+    send "Não consegui mexer na lanterna (a câmera pode estar em uso)."
+  fi
 }
 
 SOUND_DIRS="/system/media/audio/ringtones /system/media/audio/notifications"
@@ -475,8 +489,34 @@ dns_watch() {   # avisa quando o bloqueador cai e quando volta; tenta reiniciar 
   done
 }
 
+net_ok() { ping -c1 -W3 1.1.1.1 >/dev/null 2>&1 || ping -c1 -W3 8.8.8.8 >/dev/null 2>&1; }
+
+wifi_step() {   # um passo do vigia de Wi-Fi; estado em variáveis globais WFAILS, WFIXED, WLAST
+  local now=${1:-$(date +%s)}
+  if net_ok; then
+    WFAILS=0
+    if [ "$WFIXED" = 1 ]; then WFIXED=0; send "📶 Estava sem internet no Wi-Fi; reiniciei o Wi-Fi e voltou."; fi
+    return
+  fi
+  WFAILS=$((WFAILS+1))
+  # 3 falhas seguidas (~90 s) e no máx. uma tentativa a cada 10 min (se o roteador caiu, não adianta insistir)
+  if [ $WFAILS -ge 3 ] && [ $((now-WLAST)) -ge 600 ]; then
+    WLAST=$now; WFIXED=1
+    log "wifi_watch: sem internet há $WFAILS checagens, reiniciando o Wi-Fi"
+    termux-wifi-enable false >/dev/null 2>&1; sleep 4; termux-wifi-enable true >/dev/null 2>&1
+  fi
+}
+
+wifi_watch() {   # o Wi-Fi do J4 já ficou associado mas sem alcançar o roteador (Tailscale offline); religa o Wi-Fi
+  WFAILS=0 WFIXED=0 WLAST=0
+  while sleep 30; do
+    [ -f "$D/wifi_watch_off" ] && { WFAILS=0; continue; }
+    wifi_step
+  done
+}
+
 cmd_ajuda() {
-  send $'🤖 Servidor J4\n/status: bateria, RAM, disco, rede e serviços\n/foto: foto da câmera traseira (/foto frente para a frontal, /foto flash para a traseira com flash)\n/tocar: faz o celular tocar (/tocar lista, /tocar nome)\n/despertador: /despertador 07:30 [diario|semana|fds] [som], /despertador lista, /despertador apagar N\n/lembrar: mensagem + toque de 10 s no horário. Ex.: /lembrar amanhã 9h pagar a luz · /lembrar em 30min · /lembrar 25/12 · /lembrar diario 8h remédio · /lembrar lista · /lembrar apagar N\n/dns: bloqueador de anúncios (consultas, bloqueios, mais bloqueados)\n/parar: silencia o som e o despertador\n/ajuda: esta mensagem'
+  send $'🤖 Servidor J4\n/status: bateria, RAM, disco, rede e serviços\n/foto: foto da câmera traseira (/foto frente para a frontal, /foto flash para a traseira com flash)\n/lanterna: /lanterna on acende, /lanterna off apaga\n/tocar: faz o celular tocar (/tocar lista, /tocar nome)\n/despertador: /despertador 07:30 [diario|semana|fds] [som], /despertador lista, /despertador apagar N\n/lembrar: mensagem + toque de 10 s no horário. Ex.: /lembrar amanhã 9h pagar a luz · /lembrar em 30min · /lembrar 25/12 · /lembrar diario 8h remédio · /lembrar lista · /lembrar apagar N\n/dns: bloqueador de anúncios (consultas, bloqueios, mais bloqueados)\n/parar: silencia o som e o despertador\n/ajuda: esta mensagem'
 }
 
 handle() {
@@ -493,6 +533,7 @@ handle() {
     /start|/ajuda|/help) cmd_ajuda;;
     /status)  send "$(status_text)";;
     /foto)    cmd_foto "$full";;
+    /lanterna|/luz) cmd_lanterna "$arg";;
     /tocar)   cmd_tocar "$arg";;
     /despertador|/alarme) cmd_despertador "$full";;
     /lembrar|/lembrete|/lembretes) cmd_lembrar "$full";;
@@ -525,7 +566,9 @@ reminder_loop &
 REM_PID=$!
 dns_watch &
 DNSW_PID=$!
-trap 'kill $ALARM_PID $REM_PID $DNSW_PID 2>/dev/null; rmdir "$D/alarms.lock" "$D/reminders.lock" 2>/dev/null' EXIT
+wifi_watch &
+WIFIW_PID=$!
+trap 'kill $ALARM_PID $REM_PID $DNSW_PID $WIFIW_PID 2>/dev/null; rmdir "$D/alarms.lock" "$D/reminders.lock" 2>/dev/null' EXIT
 
 offset=$(cat "$D/offset" 2>/dev/null || echo 0)
 while true; do
